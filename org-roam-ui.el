@@ -488,10 +488,11 @@ were in the same table as the links)."
 (if (not old)
     (org-roam-db-query
      `[:select  [links:source
-                 links:dest
-                 links:type]
+                 [:case :when (= links:type "id") :then links:dest :else refs:node-id :end]
+                 [:case :when (= links:type "id") :then links:type :else "ref" :end]]
        :from links
-       :where (= links:type "id")])
+       :left :outer :join refs :on (and (= links:type refs:type) (= links:dest refs:ref))
+       :where (or (= links:type "id") (not (is refs:node-id nil)))])
   ;; Left outer join on refs means any id link (or cite link without a
   ;; corresponding node) will have 'nil for the `refs:node-id' value. Any
   ;; cite link where a node has that `:ROAM_REFS:' will have a value.
